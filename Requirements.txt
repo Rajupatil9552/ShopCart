@@ -1,0 +1,101 @@
+
+Ecommerce Project - Requirements
+
+1) Models
+
+- User
+	- Fields:
+		- `userId` (string, unique)
+		- `userName` (string)
+		- `email` (string, unique)
+		- `password` (string, hshed)
+		- `profilePicture` (string, URL, optional)
+		- `createdAt` (timestamp)
+		- `updatedAt` (timestamp)
+		- `role` (enum: `user` | `admin`)
+		- `orderIds` : array of `orderId` (references)
+	    -`shippingAddress`:array of strings
+
+- Product
+	- Fields:
+		- `productId` (string, unique)
+		- `productName` (string)
+		- `description` (string)
+		- `price` (number)
+		- `stock` (integer)
+		- `category` (string)
+		- `createdAt` (timestamp)
+		- `updatedAt` (timestamp)
+
+- Order
+	- Fields:
+		- `orderId` (string, unique)
+		- `userId` (string, reference to `User`)
+		- `productIds` : array of `productId` (references)
+		- `totalAmount` (number)
+		- `orderStatus` (enum: `pending`, `confirmed`, `shipped`, `delivered`, `cancelled`)
+		- `createdAt` (timestamp)
+		- `updatedAt` (timestamp)
+
+
+2) UI Pages (priority / navigation order)
+
+0. Login / Registration Page
+1. Home Page (featured + categories)
+2. Product Listing Page (filters, search)
+3. Product Detail Page (images, description, add to cart)
+4. Shopping Cart Page (update qty, remove)
+5. Checkout Page (shipping, payment summary)
+6. User Profile Page (view/update profile)
+7. Order History Page (past orders, status)
+8. Admin Dashboard (manage products, view orders)
+9. Page Not Found (404)
+
+3) API Endpoints (summary)
+
+- Auth
+	- `POST /api/auth/register` — Register new user. Body: `{ userName, email, password }`.
+	- `POST /api/auth/login` — Login. Body: `{ email, password }`. Returns JWT.
+
+- Products
+	- `GET /api/products` — Get all products (supports query params: `category`, `search`, `limit`, `page`).
+	- `GET /api/products/:productId` — Get product details.
+
+- Cart
+	- `POST /api/cart/add` — Add product to user's cart. Auth required. Body: `{ productId, quantity }`.
+	- `POST /api/cart/remove` — Remove product from cart. Auth required. Body: `{ productId }`.
+
+- Checkout / Orders
+	- `POST /api/checkout` — Create order from cart. Auth required. Body: `{ paymentMethod, shippingAddress }`.
+	- `GET /api/user/orders` — Get order history for current user. Auth required.
+
+- User
+	- `GET /api/user/profile` — Get current user's profile. Auth required.
+	- `PUT /api/user/profile` — Update current user's profile. Auth required. Body: fields to update.
+
+- Admin (requires `admin` role)
+	- `POST /api/admin/products` — Add new product. Body: product data.
+	- `PUT /api/admin/products/:productId` — Update product.
+	- `DELETE /api/admin/products/:productId` — Delete product.
+
+4) Auth & Security Notes
+
+- Use JWT for stateless auth; store token in secure httpOnly cookie or local storage depending on client needs.
+- Hash passwords with bcrypt (or equivalent) before saving.
+- Protect admin routes with role-check middleware.
+
+5) Data & Validation Notes
+
+- Validate all request bodies server-side (required fields, types, range checks).
+- Use pagination for product listing endpoints.
+- Ensure totals (order totalAmount) are computed server-side from product prices.
+
+6) Next Implementation Steps (suggested)
+
+- Create Mongoose / ORM schemas for `User`, `Product`, `Order`.
+- Implement auth (register/login) with JWT and password hashing.
+- Build product routes + controllers and basic admin middleware.
+- Implement cart logic (session or user-stored cart) and checkout flow.
+
+---
+Last updated: (auto) — structured requirements for implementation
