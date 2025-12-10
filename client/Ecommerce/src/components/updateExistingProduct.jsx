@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react'
-import { fetchProducts } from '../api/fetchProduct.js';
-import { motion, AnimatePresence } from "framer-motion"; // eslint-disable-line no-unused-vars
+import { getAllProducts, updateProduct, deleteProduct } from '../api/productApi'; // Import from your productApi.js
+import { motion as Motion, AnimatePresence } from "framer-motion";
 import { 
   PencilSquareIcon, 
   TrashIcon, 
@@ -9,13 +9,17 @@ import {
   XMarkIcon,
   ArrowPathIcon,
   ChevronLeftIcon,
-  ChevronRightIcon
+  ChevronRightIcon,
+  ExclamationTriangleIcon
 } from "@heroicons/react/24/outline";
+import toast from 'react-hot-toast';
 
 const UpdateExistingProduct = () => {
   const [allProducts, setAllProducts] = useState([]);
   const [filteredProducts, setFilteredProducts] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [updating, setUpdating] = useState(false);
+  const [deleting, setDeleting] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [currentPage, setCurrentPage] = useState(1);
@@ -23,16 +27,30 @@ const UpdateExistingProduct = () => {
   const [showUpdateModal, setShowUpdateModal] = useState(false);
   const productsPerPage = 8;
 
+  // Fetch all products
   useEffect(() => {
     const getProducts = async () => {
       try {
         setLoading(true);
-        const response = await fetchProducts();
-        setAllProducts(response.data);
-        setFilteredProducts(response.data);
-        console.log("Products fetched:", response.data);
+        const products = await getAllProducts();
+        console.log("Products fetched:", products);
+        
+        // Transform data to match your frontend structure if needed
+        const transformedProducts = Array.isArray(products) ? products.map(product => ({
+          _id: product._id || product.id,
+          productName: product.name || product.productName,
+          description: product.description,
+          price: product.price,
+          category: product.category,
+          stockQuantity: product.stock || product.stockQuantity || product.quantity,
+          imageUrl: product.imageUrl
+        })) : [];
+        
+        setAllProducts(transformedProducts);
+        setFilteredProducts(transformedProducts);
       } catch (error) {
         console.error("Error in fetching products:", error);
+        toast.error('Failed to load products');
       } finally {
         setLoading(false);
       }
@@ -41,7 +59,7 @@ const UpdateExistingProduct = () => {
   }, []);
 
   // Get unique categories
-  const categories = ['all', ...new Set(allProducts.map(p => p.category))];
+  const categories = ['all', ...new Set(allProducts.map(p => p.category).filter(Boolean))];
 
   // Filter products based on search and category
   useEffect(() => {
@@ -49,8 +67,8 @@ const UpdateExistingProduct = () => {
     
     if (searchTerm) {
       filtered = filtered.filter(product =>
-        product.productName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        product.description.toLowerCase().includes(searchTerm.toLowerCase())
+        product.productName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        product.description?.toLowerCase().includes(searchTerm.toLowerCase())
       );
     }
     
@@ -69,24 +87,131 @@ const UpdateExistingProduct = () => {
   const totalPages = Math.ceil(filteredProducts.length / productsPerPage);
 
   const handleEditProduct = (product) => {
-    setSelectedProduct(product);
+    setSelectedProduct({...product});
     setShowUpdateModal(true);
   };
 
   const handleDeleteProduct = async (productId) => {
-    if (window.confirm('Are you sure you want to delete this product?')) {
-      // Add your delete API call here
-      console.log('Delete product:', productId);
-      // After delete, refresh the products list
+    if (window.confirm('Are you sure you want to delete this product? This action cannot be undone.')) {
+      try {
+        setDeleting(productId);
+        await deleteProduct(productId);
+        
+        // Remove product from state
+        setAllProducts(prev => prev.filter(p => p._id !== productId));
+        setFilteredProducts(prev => prev.filter(p => p._id !== productId));
+        
+        toast.success('Product deleted successfully!');
+      } catch (error) {
+        console.error('Error deleting product:', error);
+        toast.error(error.response?.data?.message || 'Failed to delete product');
+      } finally {
+        setDeleting(null);
+      }
     }
   };
 
-  const handleUpdateSubmit = (e) => {
+  const handleUpdateSubmit = async (e) => {
     e.preventDefault();
-    // Add your update API call here
-    console.log('Update product:', selectedProduct);
-    setShowUpdateModal(false);
-    setSelectedProduct(null);
+    
+    // Validation
+    if (!selectedProduct.productName?.trim()) {
+      toast.error('Product name is required');
+      return;
+    }
+
+    if (!selectedProduct.description?.trim()) {
+      toast.error('Description is required');
+      return;
+    }
+
+    if (!selectedProduct.price || parseFloat(selectedProduct.price) <= 0) {
+      toast.error('Please enter a valid price');
+      return;
+    }
+
+    if (!selectedProduct.category?.trim()) {
+      toast.error('Category is required');
+      return;
+    }
+
+    if (!selectedProduct.stockQuantity || parseInt(selectedProduct.stockQuantity) < 0) {
+      toast.error('Please enter a valid stock quantity');
+      return;
+    }
+
+    if (!selectedProduct.imageUrl?.trim()) {
+      toast.error('Image URL is required');
+      return;
+    }
+
+    try {
+      setUpdating(true);
+      
+      // Prepare update data matching backend expectations
+      const updateData = {
+        _id: selectedProduct._id,
+        name: selectedProduct.productName,
+        description: selectedProduct.description,
+        price: parseFloat(selectedProduct.price),
+        category: selectedProduct.category,
+        stock: parseInt(selectedProduct.stockQuantity),
+        imageUrl: selectedProduct.imageUrl
+      };
+
+      console.log('Updating product with data:', updateData);
+      
+      const response = await updateProduct(updateData);
+      
+      // Update product in state
+      setAllProducts(prev => 
+        prev.map(p => 
+          p._id === selectedProduct._id 
+            ? {
+                ...p,
+                productName: updateData.name,
+                description: updateData.description,
+                price: updateData.price,
+                category: updateData.category,
+                stockQuantity: updateData.stock,
+                imageUrl: updateData.imageUrl
+              }
+            : p
+        )
+      );
+      
+      setFilteredProducts(prev => 
+        prev.map(p => 
+          p._id === selectedProduct._id 
+            ? {
+                ...p,
+                productName: updateData.name,
+                description: updateData.description,
+                price: updateData.price,
+                category: updateData.category,
+                stockQuantity: updateData.stock,
+                imageUrl: updateData.imageUrl
+              }
+            : p
+        )
+      );
+      
+      toast.success('Product updated successfully! 🎉');
+      setShowUpdateModal(false);
+      setSelectedProduct(null);
+      
+      console.log('Product updated:', response);
+      
+    } catch (error) {
+      console.error('Product update error:', error);
+      toast.error(error.response?.data?.message || 'Failed to update product');
+    } finally {
+      setUpdating(false);
+    }
+  };
+
+  const handleImageError = (e) => {
+    e.target.src = 'https://via.placeholder.com/300x200?text=Image+Not+Found';
   };
 
   return (
@@ -146,7 +271,7 @@ const UpdateExistingProduct = () => {
                   <option value="all">All Categories</option>
                   {categories.filter(cat => cat !== 'all').map((category, index) => (
                     <option key={index} value={category}>
-                      {category.charAt(0).toUpperCase() + category.slice(1)}
+                      {category?.charAt(0)?.toUpperCase() + category?.slice(1) || 'Uncategorized'}
                     </option>
                   ))}
                 </select>
@@ -162,6 +287,11 @@ const UpdateExistingProduct = () => {
             <div className="px-4 py-2 bg-secondary/10 rounded-lg">
               <span className="text-sm font-medium text-secondary">Filtered: {filteredProducts.length}</span>
             </div>
+            {filteredProducts.length > 0 && (
+              <div className="px-4 py-2 bg-green-100 rounded-lg">
+                <span className="text-sm font-medium text-green-800">Page {currentPage} of {totalPages}</span>
+              </div>
+            )}
           </div>
         </motion.div>
 
@@ -186,7 +316,7 @@ const UpdateExistingProduct = () => {
             >
               {currentProducts.map((product, index) => (
                 <motion.div
-                  key={product._id}
+                  key={product._id || index}
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ duration: 0.4, delay: index * 0.05 }}
@@ -196,29 +326,41 @@ const UpdateExistingProduct = () => {
                   {/* Product Image */}
                   <div className="relative h-48 overflow-hidden bg-gray-50">
                     <img
-                      src={product.imageUrl}
+                      src={product.imageUrl || 'https://via.placeholder.com/300x200?text=No+Image'}
                       alt={product.productName}
                       className="w-full h-full object-contain p-4 group-hover:scale-105 transition-transform duration-300"
+                      onError={handleImageError}
                     />
-                    <div className="absolute top-3 left-3 px-3 py-1 bg-primary text-white text-xs font-bold rounded-full">
-                      {product.category}
+                    <div className="absolute top-3 left-3 px-3 py-1 bg-primary text-white text-xs font-bold rounded-full capitalize">
+                      {product.category || 'Uncategorized'}
                     </div>
+                    {!product.imageUrl && (
+                      <div className="absolute inset-0 flex items-center justify-center">
+                        <ExclamationTriangleIcon className="w-8 h-8 text-yellow-500" />
+                      </div>
+                    )}
                   </div>
 
                   {/* Product Info */}
                   <div className="p-5 space-y-3">
                     <h3 className="text-lg font-bold text-gray-900 line-clamp-1">
-                      {product.productName}
+                      {product.productName || 'Unnamed Product'}
                     </h3>
                     
                     <p className="text-sm text-gray-600 line-clamp-2">
-                      {product.description}
+                      {product.description || 'No description available'}
                     </p>
 
                     <div className="flex items-center justify-between pt-2">
-                      <div className="text-xl font-bold text-primary">₹{product.price}</div>
-                      <div className="text-sm px-3 py-1 rounded-full bg-gray-100 text-gray-700">
-                        Stock: {product.stockQuantity || 'N/A'}
+                      <div className="text-xl font-bold text-primary">
+                        ₹{product.price || '0.00'}
+                      </div>
+                      <div className={`text-sm px-3 py-1 rounded-full ${
+                        product.stockQuantity > 10 ? 'bg-green-100 text-green-800' : 
+                        product.stockQuantity > 0 ? 'bg-yellow-100 text-yellow-800' : 
+                        'bg-red-100 text-red-800'
+                      }`}>
+                        Stock: {product.stockQuantity || '0'}
                       </div>
                     </div>
 
@@ -228,7 +370,8 @@ const UpdateExistingProduct = () => {
                         whileHover={{ scale: 1.05 }}
                         whileTap={{ scale: 0.95 }}
                         onClick={() => handleEditProduct(product)}
-                        className="flex-1 py-2.5 bg-gradient-to-r from-primary to-secondary text-white font-semibold rounded-lg hover:shadow-lg transition-all flex items-center justify-center gap-2"
+                        className="flex-1 py-2.5 bg-gradient-to-r from-primary to-secondary text-white font-semibold rounded-lg hover:shadow-lg transition-all flex items-center justify-center gap-2 disabled:opacity-50"
+                        disabled={deleting === product._id}
                       >
                         <PencilSquareIcon className="w-4 h-4" />
                         Edit
@@ -238,9 +381,19 @@ const UpdateExistingProduct = () => {
                         whileHover={{ scale: 1.05 }}
                         whileTap={{ scale: 0.95 }}
                         onClick={() => handleDeleteProduct(product._id)}
-                        className="px-4 py-2.5 bg-red-50 text-red-600 font-semibold rounded-lg hover:bg-red-100 transition-colors"
+                        className="px-4 py-2.5 bg-red-50 text-red-600 font-semibold rounded-lg hover:bg-red-100 transition-colors flex items-center gap-2 disabled:opacity-50"
+                        disabled={deleting === product._id}
                       >
-                        <TrashIcon className="w-4 h-4" />
+                        {deleting === product._id ? (
+                          <>
+                            <div className="w-4 h-4 border-2 border-red-600/30 border-t-red-600 rounded-full animate-spin" />
+                            Deleting...
+                          </>
+                        ) : (
+                          <>
+                            <TrashIcon className="w-4 h-4" />
+                          </>
+                        )}
                       </motion.button>
                     </div>
                   </div>
@@ -258,7 +411,7 @@ const UpdateExistingProduct = () => {
                 <button
                   onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
                   disabled={currentPage === 1}
-                  className="flex items-center gap-2 px-4 py-2 text-gray-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="flex items-center gap-2 px-4 py-2 text-gray-700 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-100 rounded-lg transition-colors"
                 >
                   <ChevronLeftIcon className="w-4 h-4" />
                   Previous
@@ -296,7 +449,7 @@ const UpdateExistingProduct = () => {
                 <button
                   onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
                   disabled={currentPage === totalPages}
-                  className="flex items-center gap-2 px-4 py-2 text-gray-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="flex items-center gap-2 px-4 py-2 text-gray-700 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-100 rounded-lg transition-colors"
                 >
                   Next
                   <ChevronRightIcon className="w-4 h-4" />
@@ -315,7 +468,7 @@ const UpdateExistingProduct = () => {
             </div>
             <h3 className="text-2xl font-bold text-gray-900 mb-2">No Products Found</h3>
             <p className="text-gray-600 max-w-md mx-auto mb-8">
-              {searchTerm ? `No products found for "${searchTerm}"` : 'No products available'}
+              {searchTerm ? `No products found for "${searchTerm}"` : 'No products available in your store'}
             </p>
             <button
               onClick={() => {
@@ -357,6 +510,7 @@ const UpdateExistingProduct = () => {
                         setSelectedProduct(null);
                       }}
                       className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+                      disabled={updating}
                     >
                       <XMarkIcon className="w-6 h-6 text-gray-500" />
                     </button>
@@ -366,56 +520,102 @@ const UpdateExistingProduct = () => {
                 {/* Update Form */}
                 <form onSubmit={handleUpdateSubmit} className="p-8 space-y-6">
                   <div className="space-y-2">
-                    <label className="text-gray-700 font-semibold">Product Name</label>
+                    <label className="text-gray-700 font-semibold">Product Name *</label>
                     <input
                       type="text"
-                      value={selectedProduct.productName}
+                      value={selectedProduct.productName || ''}
                       onChange={(e) => setSelectedProduct({...selectedProduct, productName: e.target.value})}
-                      className="w-full px-4 py-3 bg-gray-50 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary"
+                      className="w-full px-4 py-3 bg-gray-50 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary transition-all"
+                      required
+                      disabled={updating}
                     />
                   </div>
 
                   <div className="space-y-2">
-                    <label className="text-gray-700 font-semibold">Description</label>
+                    <label className="text-gray-700 font-semibold">Description *</label>
                     <textarea
-                      value={selectedProduct.description}
+                      value={selectedProduct.description || ''}
                       onChange={(e) => setSelectedProduct({...selectedProduct, description: e.target.value})}
                       rows="3"
-                      className="w-full px-4 py-3 bg-gray-50 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary resize-none"
+                      className="w-full px-4 py-3 bg-gray-50 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary transition-all resize-none"
+                      required
+                      disabled={updating}
                     />
                   </div>
 
                   <div className="grid grid-cols-2 gap-6">
                     <div className="space-y-2">
-                      <label className="text-gray-700 font-semibold">Price</label>
+                      <label className="text-gray-700 font-semibold">Price (₹) *</label>
                       <input
                         type="number"
-                        value={selectedProduct.price}
+                        step="0.01"
+                        value={selectedProduct.price || ''}
                         onChange={(e) => setSelectedProduct({...selectedProduct, price: e.target.value})}
-                        className="w-full px-4 py-3 bg-gray-50 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary"
+                        className="w-full px-4 py-3 bg-gray-50 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary transition-all"
+                        required
+                        disabled={updating}
                       />
                     </div>
 
                     <div className="space-y-2">
-                      <label className="text-gray-700 font-semibold">Stock</label>
+                      <label className="text-gray-700 font-semibold">Stock Quantity *</label>
                       <input
                         type="number"
-                        value={selectedProduct.stockQuantity}
+                        value={selectedProduct.stockQuantity || ''}
                         onChange={(e) => setSelectedProduct({...selectedProduct, stockQuantity: e.target.value})}
-                        className="w-full px-4 py-3 bg-gray-50 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary"
+                        className="w-full px-4 py-3 bg-gray-50 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary transition-all"
+                        required
+                        disabled={updating}
                       />
                     </div>
                   </div>
 
-                  <div className="space-y-2">
-                    <label className="text-gray-700 font-semibold">Image URL</label>
-                    <input
-                      type="text"
-                      value={selectedProduct.imageUrl}
-                      onChange={(e) => setSelectedProduct({...selectedProduct, imageUrl: e.target.value})}
-                      className="w-full px-4 py-3 bg-gray-50 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary"
-                    />
+                  <div className="grid grid-cols-2 gap-6">
+                    <div className="space-y-2">
+                      <label className="text-gray-700 font-semibold">Category *</label>
+                      <input
+                        type="text"
+                        value={selectedProduct.category || ''}
+                        onChange={(e) => setSelectedProduct({...selectedProduct, category: e.target.value})}
+                        className="w-full px-4 py-3 bg-gray-50 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary transition-all"
+                        required
+                        disabled={updating}
+                        list="categories-list"
+                      />
+                      <datalist id="categories-list">
+                        {categories.filter(cat => cat !== 'all').map((category, index) => (
+                          <option key={index} value={category} />
+                        ))}
+                      </datalist>
+                    </div>
+
+                    <div className="space-y-2">
+                      <label className="text-gray-700 font-semibold">Image URL *</label>
+                      <input
+                        type="url"
+                        value={selectedProduct.imageUrl || ''}
+                        onChange={(e) => setSelectedProduct({...selectedProduct, imageUrl: e.target.value})}
+                        className="w-full px-4 py-3 bg-gray-50 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary transition-all"
+                        required
+                        disabled={updating}
+                      />
+                    </div>
                   </div>
+
+                  {/* Image Preview */}
+                  {selectedProduct.imageUrl && (
+                    <div className="space-y-2">
+                      <label className="text-gray-700 font-semibold">Image Preview</label>
+                      <div className="h-40 bg-gray-50 rounded-xl border border-gray-300 overflow-hidden">
+                        <img
+                          src={selectedProduct.imageUrl}
+                          alt="Preview"
+                          className="w-full h-full object-contain p-2"
+                          onError={handleImageError}
+                        />
+                      </div>
+                    </div>
+                  )}
 
                   <div className="flex gap-4 pt-6">
                     <motion.button
@@ -426,7 +626,8 @@ const UpdateExistingProduct = () => {
                         setShowUpdateModal(false);
                         setSelectedProduct(null);
                       }}
-                      className="px-8 py-3 border-2 border-gray-300 text-gray-700 font-semibold rounded-xl hover:bg-gray-50 transition-all"
+                      className="px-8 py-3 border-2 border-gray-300 text-gray-700 font-semibold rounded-xl hover:bg-gray-50 transition-all disabled:opacity-50"
+                      disabled={updating}
                     >
                       Cancel
                     </motion.button>
@@ -435,10 +636,20 @@ const UpdateExistingProduct = () => {
                       type="submit"
                       whileHover={{ scale: 1.02 }}
                       whileTap={{ scale: 0.98 }}
-                      className="flex-1 px-8 py-3 bg-gradient-to-r from-primary to-secondary text-white font-semibold rounded-xl hover:shadow-lg hover:shadow-primary/30 transition-all flex items-center justify-center gap-2"
+                      className="flex-1 px-8 py-3 bg-gradient-to-r from-primary to-secondary text-white font-semibold rounded-xl hover:shadow-lg hover:shadow-primary/30 transition-all flex items-center justify-center gap-2 disabled:opacity-50"
+                      disabled={updating}
                     >
-                      <ArrowPathIcon className="w-5 h-5" />
-                      Update Product
+                      {updating ? (
+                        <>
+                          <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                          Updating...
+                        </>
+                      ) : (
+                        <>
+                          <ArrowPathIcon className="w-5 h-5" />
+                          Update Product
+                        </>
+                      )}
                     </motion.button>
                   </div>
                 </form>
@@ -451,4 +662,4 @@ const UpdateExistingProduct = () => {
   )
 }
 
-export default UpdateExistingProduct
+export default UpdateExistingProduct;

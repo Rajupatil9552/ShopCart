@@ -2,7 +2,7 @@
 import axios from 'axios';
 
 
-const backendURL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:3000';
+const backendURL = import.meta.env.VITE_BACKEND_URL || 'https://ecommerce-website-85g0.onrender.com';
 console.log("Backend URL in fetchProduct.js:", backendURL);
 const token = localStorage.getItem('token');
 

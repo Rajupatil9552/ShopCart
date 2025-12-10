@@ -1,6 +1,6 @@
 import axios from 'axios';
 
-const backendURL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:3000';
+const backendURL = import.meta.env.VITE_BACKEND_URL || 'https://ecommerce-website-85g0.onrender.com';
 
 const token = localStorage.getItem('token');
 const getUserProfile = async () => {
