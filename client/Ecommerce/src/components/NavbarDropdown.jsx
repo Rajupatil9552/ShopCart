@@ -1,5 +1,5 @@
 import { Menu, MenuButton, MenuItem, MenuItems } from "@headlessui/react";
-import ProfileAvatar from "../assets/profileAvatar.png";
+import ProfileAvatar from "../assets/ProfileAvatar.png";
 import { Link, useNavigate } from "react-router-dom";
 import React, { useState, useEffect } from "react";
 import { getUserProfile } from "../api/getUserProfile";
