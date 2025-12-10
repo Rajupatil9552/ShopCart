@@ -40,12 +40,12 @@ const ProductListing = () => {
       case "price-high":
         filtered.sort((a, b) => b.price - a.price);
         break;
-      case "name-asc":
-        filtered.sort((a, b) => a.name.localeCompare(b.name));
-        break;
-      case "name-desc":
-        filtered.sort((a, b) => b.name.localeCompare(a.name));
-        break;
+      // case "name-asc":
+      //   filtered.sort((a, b) => a.name.localeCompare(b.name));
+      //   break;
+      // case "name-desc":
+      //   filtered.sort((a, b) => b.name.localeCompare(a.name));
+      //   break;
       case "newest":
         filtered.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
         break;
