@@ -1,6 +1,6 @@
 import React from "react";
-import { motion } from "framer-motion";
-import HeroImage from "../assets/heroImage1.png";
+import { motion as Motion } from "framer-motion";
+import HeroImage from "../assets/HeroImage1.png";
 import { 
   MagnifyingGlassIcon, 
   ShoppingBagIcon, 
@@ -13,45 +13,23 @@ const HeroSection = () => {
   return (
     <section className="relative w-full py-20 md:py-32 overflow-hidden bg-gradient-to-br from-gray-50 via-white to-primary/5">
       
-      {/* Animated Background Elements */}
+      {/* Simple gradient background without animations */}
       <div className="absolute inset-0 overflow-hidden">
-        {[...Array(15)].map((_, i) => (
-          <motion.div
-            key={i}
-            className="absolute rounded-full bg-gradient-to-r from-primary/10 to-secondary/10"
-            animate={{
-              x: [0, Math.random() * 100 - 50],
-              y: [0, Math.random() * 100 - 50],
-              scale: [1, 1.2, 1],
-            }}
-            transition={{
-              duration: Math.random() * 10 + 10,
-              repeat: Infinity,
-              ease: "linear"
-            }}
-            style={{
-              width: `${Math.random() * 200 + 50}px`,
-              height: `${Math.random() * 200 + 50}px`,
-              left: `${Math.random() * 100}%`,
-              top: `${Math.random() * 100}%`,
-              opacity: Math.random() * 0.3 + 0.1,
-            }}
-          />
-        ))}
+        <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-secondary/5" />
       </div>
 
       <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 lg:gap-20 items-center">
           
           {/* Left Content */}
-          <motion.div 
+          <Motion.div 
             initial={{ opacity: 0, x: -50 }}
             animate={{ opacity: 1, x: 0 }}
             transition={{ duration: 0.8, delay: 0.2 }}
             className="space-y-8"
           >
             {/* Badge */}
-            <motion.div
+            <Motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.3 }}
@@ -61,10 +39,10 @@ const HeroSection = () => {
               <span className="text-sm font-semibold text-primary">
                 🎯 Premium Quality Guaranteed
               </span>
-            </motion.div>
+            </Motion.div>
 
             {/* Main Heading */}
-            <motion.div
+            <Motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.4 }}
@@ -75,10 +53,10 @@ const HeroSection = () => {
                   Daily Experience
                 </span>
               </h1>
-            </motion.div>
+            </Motion.div>
 
             {/* Subtitle */}
-            <motion.p
+            <Motion.p
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.5 }}
@@ -88,10 +66,10 @@ const HeroSection = () => {
               <span className="block mt-2 text-primary font-medium">
                 Smart choices. Next-gen style. Premium quality — all in one place.
               </span>
-            </motion.p>
+            </Motion.p>
 
             {/* Search Bar */}
-            <motion.div
+            <Motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.6 }}
@@ -106,13 +84,13 @@ const HeroSection = () => {
                   placeholder="Search for products, brands, or categories..."
                   className="flex-1 px-4 py-4 text-lg bg-transparent focus:outline-none placeholder-gray-400"
                 />
-                <motion.button
+                <Motion.button
                   whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.95 }}
                   className="h-full px-6 bg-gradient-to-r from-primary to-secondary text-white font-semibold hover:opacity-90 transition-opacity"
                 >
                   Search
-                </motion.button>
+                </Motion.button>
               </div>
               <div className="mt-3 flex flex-wrap gap-2">
                 {["Electronics", "Fashion", "Home", "Fitness"].map((tag) => (
@@ -121,16 +99,16 @@ const HeroSection = () => {
                   </span>
                 ))}
               </div>
-            </motion.div>
+            </Motion.div>
 
             {/* CTA Buttons */}
-            <motion.div
+            <Motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.7 }}
               className="flex flex-col sm:flex-row gap-4 pt-4"
             >
-              <motion.button
+              <Motion.button
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
                 className="group relative px-8 py-4 rounded-xl bg-gradient-to-r from-primary to-secondary text-white font-semibold overflow-hidden shadow-lg hover:shadow-xl transition-all duration-300"
@@ -141,9 +119,9 @@ const HeroSection = () => {
                   <span>Start Shopping</span>
                   <ArrowRightIcon className="w-4 h-4 opacity-0 group-hover:opacity-100 group-hover:translate-x-1 transition-all duration-300" />
                 </div>
-              </motion.button>
+              </Motion.button>
               
-              <motion.button
+              <Motion.button
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
                 className="group px-8 py-4 rounded-xl border-2 border-primary text-primary font-semibold hover:bg-primary/5 transition-colors duration-300"
@@ -153,11 +131,11 @@ const HeroSection = () => {
                   <span>Explore Categories</span>
                   <ArrowRightIcon className="w-4 h-4 opacity-0 group-hover:opacity-100 group-hover:translate-x-1 transition-all duration-300" />
                 </div>
-              </motion.button>
-            </motion.div>
+              </Motion.button>
+            </Motion.div>
 
             {/* Stats */}
-            <motion.div
+            <Motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.8 }}
@@ -175,55 +153,51 @@ const HeroSection = () => {
                   <div className="text-sm text-gray-500 mt-1">{stat.label}</div>
                 </div>
               ))}
-            </motion.div>
-          </motion.div>
+            </Motion.div>
+          </Motion.div>
 
           {/* Right Image */}
-          <motion.div
+          <Motion.div
             initial={{ opacity: 0, scale: 0.8, rotateY: 20 }}
             animate={{ opacity: 1, scale: 1, rotateY: 0 }}
             transition={{ duration: 1, delay: 0.3 }}
             className="relative flex justify-center lg:justify-end"
           >
             <div className="relative">
-              {/* Floating image container */}
-              <motion.div
-                animate={{ y: [0, -20, 0] }}
-                transition={{ duration: 6, repeat: Infinity, ease: "easeInOut" }}
-                className="relative"
-              >
+              {/* Simple image container without complex animations */}
+              <div className="relative">
                 {/* Image with gradient border */}
                 <div className="relative w-[500px] max-w-full">
-                  <div className="absolute inset-0 bg-gradient-to-r from-primary via-secondary to-cta rounded-3xl blur-xl opacity-30 animate-pulse-slow" />
+                  <div className="absolute inset-0 bg-gradient-to-r from-primary via-secondary to-cta rounded-3xl blur-xl opacity-30" />
                   <img
                     src={HeroImage}
                     alt="Modern Shopping Experience"
-                    className="relative rounded-3xl shadow-2xl shadow-black/20 border-8 border-white object-cover transform perspective-1000 hover:rotate-y-6 transition-transform duration-700"
+                    className="relative rounded-3xl shadow-2xl shadow-black/20 border-8 border-white object-cover"
                   />
                 </div>
                 
-                {/* Floating Elements */}
-                <motion.div
-                  animate={{ y: [0, -30, 0], rotate: [0, 360] }}
-                  transition={{ duration: 8, repeat: Infinity, ease: "easeInOut" }}
+                {/* Simple floating elements without Math.random */}
+                <Motion.div
+                  animate={{ y: [0, -10, 0] }}
+                  transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
                   className="absolute -top-6 -left-6 w-24 h-24 rounded-2xl bg-gradient-to-br from-primary/20 to-secondary/20 backdrop-blur-sm border border-white/20 shadow-lg flex items-center justify-center"
                 >
                   <div className="text-center">
                     <div className="text-2xl font-bold text-primary">30%</div>
                     <div className="text-xs font-semibold text-gray-700">OFF</div>
                   </div>
-                </motion.div>
+                </Motion.div>
                 
-                <motion.div
-                  animate={{ y: [0, 30, 0], rotate: [360, 0] }}
-                  transition={{ duration: 10, repeat: Infinity, ease: "easeInOut" }}
+                <Motion.div
+                  animate={{ y: [0, 10, 0] }}
+                  transition={{ duration: 4, repeat: Infinity, ease: "easeInOut", delay: 0.5 }}
                   className="absolute -bottom-8 -right-8 w-20 h-20 rounded-full bg-gradient-to-br from-cta/20 to-pink-500/20 backdrop-blur-sm border border-white/20 shadow-lg flex items-center justify-center"
                 >
                   <ShoppingBagIcon className="w-8 h-8 text-cta" />
-                </motion.div>
-              </motion.div>
+                </Motion.div>
+              </div>
             </div>
-          </motion.div>
+          </Motion.div>
         </div>
       </div>
     </section>
