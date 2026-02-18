@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
-import { userRegister } from "../../api/authApi";
+import { userRegister, userLogin } from "../../api/authApi";
 import { motion } from "framer-motion"; // eslint-disable-line no-unused-vars
 import {
   UserIcon,
@@ -22,17 +22,29 @@ const Register = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const [passwordStrength, setPasswordStrength] = useState(0);
+  // Generate background particles once
+  const [particles] = useState(() =>
+    [...Array(20)].map((_, i) => ({
+      id: i,
+      y: [0, Math.random() * 100 - 50],
+      x: [0, Math.random() * 50 - 25],
+      duration: Math.random() * 15 + 15,
+      size: Math.random() * 100 + 50,
+      left: Math.random() * 100,
+      top: Math.random() * 100,
+      opacity: Math.random() * 0.2 + 0.05,
+    }))
+  );
 
-  // Password strength checker
-  useEffect(() => {
+  // Calculate password strength
+  const passwordStrength = (() => {
     let strength = 0;
     if (password.length >= 8) strength += 25;
     if (/[A-Z]/.test(password)) strength += 25;
     if (/[0-9]/.test(password)) strength += 25;
     if (/[^A-Za-z0-9]/.test(password)) strength += 25;
-    setPasswordStrength(strength);
-  }, [password]);
+    return strength;
+  })();
 
   const getPasswordStrengthColor = () => {
     if (passwordStrength >= 75) return "bg-green-500";
@@ -66,8 +78,26 @@ const Register = () => {
     try {
       const response = await userRegister(userName, email, password);
       console.log("Registration successful:", response.data);
-      
-      // Show success state before redirect
+
+      try {
+        // Automatically login the user
+        const loginResponse = await userLogin(email, password);
+        if (loginResponse && loginResponse.data && loginResponse.data.token) {
+          localStorage.setItem("token", loginResponse.data.token);
+
+          setIsLoading(false);
+          // Redirect to home page
+          setTimeout(() => {
+            window.location.href = "/";
+          }, 800);
+          return;
+        }
+      } catch (loginError) {
+        console.error("Auto-login failed:", loginError);
+        // Fallback to login page if auto-login fails
+      }
+
+      // Show success state before redirect (Fallback)
       setIsLoading(false);
       setTimeout(() => {
         window.location.href = "/login";
@@ -88,26 +118,26 @@ const Register = () => {
     <div className="min-h-screen w-full flex items-center justify-center bg-gradient-to-br from-gray-900 via-gray-800 to-black p-4 md:p-6">
       {/* Background Elements */}
       <div className="fixed inset-0 overflow-hidden">
-        {[...Array(20)].map((_, i) => (
+        {particles.map((particle) => (
           <motion.div
-            key={i}
+            key={particle.id}
             className="absolute rounded-full bg-gradient-to-r from-primary/10 to-secondary/10"
             animate={{
-              y: [0, Math.random() * 100 - 50],
-              x: [0, Math.random() * 50 - 25],
+              y: particle.y,
+              x: particle.x,
             }}
             transition={{
-              duration: Math.random() * 15 + 15,
+              duration: particle.duration,
               repeat: Infinity,
               repeatType: "reverse",
               ease: "linear"
             }}
             style={{
-              width: `${Math.random() * 100 + 50}px`,
-              height: `${Math.random() * 100 + 50}px`,
-              left: `${Math.random() * 100}%`,
-              top: `${Math.random() * 100}%`,
-              opacity: Math.random() * 0.2 + 0.05,
+              width: `${particle.size}px`,
+              height: `${particle.size}px`,
+              left: `${particle.left}%`,
+              top: `${particle.top}%`,
+              opacity: particle.opacity,
             }}
           />
         ))}
@@ -245,11 +275,10 @@ const Register = () => {
               <div className="mt-3 space-y-2">
                 <div className="flex justify-between text-xs">
                   <span className="text-gray-400">Password strength:</span>
-                  <span className={`font-medium ${
-                    passwordStrength >= 75 ? "text-green-400" :
+                  <span className={`font-medium ${passwordStrength >= 75 ? "text-green-400" :
                     passwordStrength >= 50 ? "text-yellow-400" :
-                    passwordStrength >= 25 ? "text-orange-400" : "text-red-400"
-                  }`}>
+                      passwordStrength >= 25 ? "text-orange-400" : "text-red-400"
+                    }`}>
                     {getPasswordStrengthText()}
                   </span>
                 </div>

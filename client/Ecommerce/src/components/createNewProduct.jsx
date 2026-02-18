@@ -80,7 +80,7 @@ const CreateNewProduct = () => {
     try {
       // Prepare product data matching backend expectations
       const productData = {
-        name: formData.productName,
+        productName: formData.productName,
         description: formData.description,
         price: parseFloat(formData.price),
         category: formData.category,
@@ -365,15 +365,15 @@ const CreateNewProduct = () => {
                   {!formData.imageUrl.match(
                     /\.(jpeg|jpg|gif|png|webp|svg)$/i
                   ) && (
-                    <div className="absolute inset-0 flex items-center justify-center">
-                      <div className="text-center">
-                        <LinkIcon className="w-12 h-12 text-gray-400 mx-auto mb-2" />
-                        <p className="text-gray-500 text-sm">
-                          Image preview may not be available for all URL types
-                        </p>
+                      <div className="absolute inset-0 flex items-center justify-center">
+                        <div className="text-center">
+                          <LinkIcon className="w-12 h-12 text-gray-400 mx-auto mb-2" />
+                          <p className="text-gray-500 text-sm">
+                            Image preview may not be available for all URL types
+                          </p>
+                        </div>
                       </div>
-                    </div>
-                  )}
+                    )}
                 </div>
               </motion.div>
             )}

@@ -85,7 +85,7 @@ const ProductDetails = () => {
       // Add to cart first
       await addToCart(productDetails._id, quantity);
       // Then navigate to checkout
-      navigate('/checkout');
+      navigate('/place-order');
       toast.success("Product added to cart! Redirecting to checkout 🎉");
     } catch (error) {
       console.error("Error adding product to cart:", error);

@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react'
-import { fetchProducts } from '../api/fetchProduct.js';
+import { getAllProducts, deleteProduct, updateProduct } from '../api/productApi';
+import toast from 'react-hot-toast';
 import { motion, AnimatePresence } from "framer-motion"; // eslint-disable-line no-unused-vars
-import { 
-  PencilSquareIcon, 
-  TrashIcon, 
+import {
+  PencilSquareIcon,
+  TrashIcon,
   MagnifyingGlassIcon,
   FunnelIcon,
   XMarkIcon,
@@ -23,21 +24,21 @@ const UpdateExistingProduct = () => {
   const [showUpdateModal, setShowUpdateModal] = useState(false);
   const productsPerPage = 8;
 
+  const fetchProductsData = async () => {
+    try {
+      setLoading(true);
+      const data = await getAllProducts();
+      setAllProducts(data);
+    } catch (error) {
+      console.error("Error in fetching products:", error);
+      toast.error("Failed to load products");
+    } finally {
+      setLoading(false);
+    }
+  };
+
   useEffect(() => {
-    const getProducts = async () => {
-      try {
-        setLoading(true);
-        const response = await fetchProducts();
-        setAllProducts(response.data);
-        setFilteredProducts(response.data);
-        console.log("Products fetched:", response.data);
-      } catch (error) {
-        console.error("Error in fetching products:", error);
-      } finally {
-        setLoading(false);
-      }
-    };
-    getProducts();
+    fetchProductsData();
   }, []);
 
   // Get unique categories
@@ -46,18 +47,18 @@ const UpdateExistingProduct = () => {
   // Filter products based on search and category
   useEffect(() => {
     let filtered = allProducts;
-    
+
     if (searchTerm) {
       filtered = filtered.filter(product =>
         product.productName.toLowerCase().includes(searchTerm.toLowerCase()) ||
         product.description.toLowerCase().includes(searchTerm.toLowerCase())
       );
     }
-    
+
     if (selectedCategory !== 'all') {
       filtered = filtered.filter(product => product.category === selectedCategory);
     }
-    
+
     setFilteredProducts(filtered);
     setCurrentPage(1);
   }, [searchTerm, selectedCategory, allProducts]);
@@ -75,25 +76,37 @@ const UpdateExistingProduct = () => {
 
   const handleDeleteProduct = async (productId) => {
     if (window.confirm('Are you sure you want to delete this product?')) {
-      // Add your delete API call here
-      console.log('Delete product:', productId);
-      // After delete, refresh the products list
+      try {
+        await deleteProduct(productId);
+        toast.success("Product deleted successfully");
+        fetchProductsData();
+      } catch (error) {
+        console.error("Delete product error:", error);
+        toast.error("Failed to delete product");
+      }
     }
   };
 
-  const handleUpdateSubmit = (e) => {
+  const handleUpdateSubmit = async (e) => {
     e.preventDefault();
-    // Add your update API call here
-    console.log('Update product:', selectedProduct);
-    setShowUpdateModal(false);
-    setSelectedProduct(null);
+    try {
+      const { _id, createdAt, updatedAt, __v, ...updateData } = selectedProduct;
+      await updateProduct(_id, updateData);
+      toast.success("Product updated successfully");
+      setShowUpdateModal(false);
+      setSelectedProduct(null);
+      fetchProductsData();
+    } catch (error) {
+      console.error("Update product error:", error);
+      toast.error("Failed to update product");
+    }
   };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 py-10 px-4 sm:px-6 lg:px-8">
       <div className="max-w-7xl mx-auto">
         {/* Header */}
-        <motion.div 
+        <motion.div
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5 }}
@@ -103,7 +116,7 @@ const UpdateExistingProduct = () => {
             <PencilSquareIcon className="w-5 h-5 text-primary" />
             <span className="text-sm font-semibold text-primary">Manage Products</span>
           </div>
-          
+
           <h1 className="text-4xl sm:text-5xl font-bold text-gray-900 mb-4">
             Update <span className="bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">Products</span>
           </h1>
@@ -113,7 +126,7 @@ const UpdateExistingProduct = () => {
         </motion.div>
 
         {/* Search and Filter Bar */}
-        <motion.div 
+        <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5, delay: 0.1 }}
@@ -178,7 +191,7 @@ const UpdateExistingProduct = () => {
           </div>
         ) : filteredProducts.length > 0 ? (
           <>
-            <motion.div 
+            <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               transition={{ duration: 0.5, delay: 0.2 }}
@@ -210,7 +223,7 @@ const UpdateExistingProduct = () => {
                     <h3 className="text-lg font-bold text-gray-900 line-clamp-1">
                       {product.productName}
                     </h3>
-                    
+
                     <p className="text-sm text-gray-600 line-clamp-2">
                       {product.description}
                     </p>
@@ -233,7 +246,7 @@ const UpdateExistingProduct = () => {
                         <PencilSquareIcon className="w-4 h-4" />
                         Edit
                       </motion.button>
-                      
+
                       <motion.button
                         whileHover={{ scale: 1.05 }}
                         whileTap={{ scale: 0.95 }}
@@ -250,7 +263,7 @@ const UpdateExistingProduct = () => {
 
             {/* Pagination */}
             {totalPages > 1 && (
-              <motion.div 
+              <motion.div
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 className="flex items-center justify-between px-4 py-3 bg-white rounded-2xl border border-gray-200"
@@ -263,7 +276,7 @@ const UpdateExistingProduct = () => {
                   <ChevronLeftIcon className="w-4 h-4" />
                   Previous
                 </button>
-                
+
                 <div className="flex items-center gap-2">
                   {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
                     let pageNum;
@@ -276,23 +289,22 @@ const UpdateExistingProduct = () => {
                     } else {
                       pageNum = currentPage - 2 + i;
                     }
-                    
+
                     return (
                       <button
                         key={pageNum}
                         onClick={() => setCurrentPage(pageNum)}
-                        className={`w-10 h-10 rounded-lg transition-colors ${
-                          currentPage === pageNum
+                        className={`w-10 h-10 rounded-lg transition-colors ${currentPage === pageNum
                             ? 'bg-gradient-to-r from-primary to-secondary text-white'
                             : 'text-gray-700 hover:bg-gray-100'
-                        }`}
+                          }`}
                       >
                         {pageNum}
                       </button>
                     );
                   })}
                 </div>
-                
+
                 <button
                   onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
                   disabled={currentPage === totalPages}
@@ -305,7 +317,7 @@ const UpdateExistingProduct = () => {
             )}
           </>
         ) : (
-          <motion.div 
+          <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             className="text-center py-16"
@@ -370,7 +382,7 @@ const UpdateExistingProduct = () => {
                     <input
                       type="text"
                       value={selectedProduct.productName}
-                      onChange={(e) => setSelectedProduct({...selectedProduct, productName: e.target.value})}
+                      onChange={(e) => setSelectedProduct({ ...selectedProduct, productName: e.target.value })}
                       className="w-full px-4 py-3 bg-gray-50 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary"
                     />
                   </div>
@@ -379,7 +391,7 @@ const UpdateExistingProduct = () => {
                     <label className="text-gray-700 font-semibold">Description</label>
                     <textarea
                       value={selectedProduct.description}
-                      onChange={(e) => setSelectedProduct({...selectedProduct, description: e.target.value})}
+                      onChange={(e) => setSelectedProduct({ ...selectedProduct, description: e.target.value })}
                       rows="3"
                       className="w-full px-4 py-3 bg-gray-50 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary resize-none"
                     />
@@ -391,7 +403,7 @@ const UpdateExistingProduct = () => {
                       <input
                         type="number"
                         value={selectedProduct.price}
-                        onChange={(e) => setSelectedProduct({...selectedProduct, price: e.target.value})}
+                        onChange={(e) => setSelectedProduct({ ...selectedProduct, price: e.target.value })}
                         className="w-full px-4 py-3 bg-gray-50 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary"
                       />
                     </div>
@@ -401,7 +413,7 @@ const UpdateExistingProduct = () => {
                       <input
                         type="number"
                         value={selectedProduct.stockQuantity}
-                        onChange={(e) => setSelectedProduct({...selectedProduct, stockQuantity: e.target.value})}
+                        onChange={(e) => setSelectedProduct({ ...selectedProduct, stockQuantity: e.target.value })}
                         className="w-full px-4 py-3 bg-gray-50 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary"
                       />
                     </div>
@@ -412,7 +424,7 @@ const UpdateExistingProduct = () => {
                     <input
                       type="text"
                       value={selectedProduct.imageUrl}
-                      onChange={(e) => setSelectedProduct({...selectedProduct, imageUrl: e.target.value})}
+                      onChange={(e) => setSelectedProduct({ ...selectedProduct, imageUrl: e.target.value })}
                       className="w-full px-4 py-3 bg-gray-50 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary"
                     />
                   </div>
@@ -430,7 +442,7 @@ const UpdateExistingProduct = () => {
                     >
                       Cancel
                     </motion.button>
-                    
+
                     <motion.button
                       type="submit"
                       whileHover={{ scale: 1.02 }}
